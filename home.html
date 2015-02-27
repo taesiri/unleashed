@@ -1,0 +1,17 @@
+<html>
+  <head>
+    <title>Unleashed!</title>
+  </head>
+  <body>
+    Gimme a URL : <input type="input" name="name" id="url" value="http://www.bing.com/">
+    <input type="button" name="name" value="Unleash it!" onclick="Unleasher()">
+  </body>
+
+
+  <script >
+
+  function Unleasher(){
+    window.location = "http://127.0.0.1:8000/" + document.getElementById("url").value;
+  }
+  </script>
+</html>
