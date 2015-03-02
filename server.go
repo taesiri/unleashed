@@ -1,16 +1,15 @@
 package main
 
 import (
-        "io"
-        "log"
-        "io/ioutil"
-        "net/http"
-        "net/url"
-        "strings"
+    "net/http"
+    "strings"
+    "log"
+    "io/ioutil"
+    "encoding/base64"
+    "net/url"
+    "net/http/cookiejar"
 )
 
-const serverIP = "http://127.0.0.1:8000/"
-const serverPort = ":8000"
 
 func check(e error) {
     if e != nil {
@@ -18,84 +17,59 @@ func check(e error) {
     }
 }
 
+func main() {
+
+    http.HandleFunc("/", hello)
+
+    http.HandleFunc("/enc/", func(w http.ResponseWriter, r *http.Request) {
+        theUrl := strings.SplitN(r.URL.Path, "/", 3)[2]
+
+        log.Printf("ENC")
+        log.Printf(theUrl)
+
+        sDec, _ := base64.StdEncoding.DecodeString(theUrl)
+        sDec, _ = base64.StdEncoding.DecodeString(string(sDec[:]))
+
+
+        address := string(sDec[:])
+        log.Printf(address)
+
+
+        u, err := url.Parse(address)
+        check(err)
+        if u.Host == "" {
+
+        }
+
+
+        options := cookiejar.Options{
+               PublicSuffixList: publicsuffix.List,
+        }
+
+        cookieJar, _ := cookiejar.New(&options)
+
+        client := &http.Client {
+          Jar: cookieJar,
+        }
+
+
+        resp, err := client.Get(address)
+        body, err := ioutil.ReadAll(resp.Body)
+        check(err)
+
+
+
+        w.Header().Set("GO!", "Unleashed!")
+        w.WriteHeader(200)
+        w.Write(body)
+    })
+
+    http.ListenAndServe(":8000", nil)
+}
+
 
 func hello(w http.ResponseWriter, r *http.Request) {
         dat, err := ioutil.ReadFile("home.html")
         check(err)
-        io.WriteString(w, string(dat))
-
-}
-
-var mux map[string]func(http.ResponseWriter, *http.Request)
-
-func main() {
-        server := http.Server{
-                Addr:    serverPort,
-                Handler: &myHandler{},
-        }
-
-        mux = make(map[string]func(http.ResponseWriter, *http.Request))
-        mux["/"] = hello
-
-        server.ListenAndServe()
-}
-
-type myHandler struct{}
-
-func (*myHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-        if h, ok := mux[r.URL.String()]; ok {
-                h(w, r)
-                return
-        }
-
-        address := r.URL.String()
-        address = address[1:len(address)]
-
-        u, err := url.Parse(address)
-            if err != nil {
-                panic(err)
-            }
-
-
-
-        siteUrl := "";
-
-        if u.Host != "" {
-          siteUrl = u.Scheme + "://" + u.Host
-        }
-
-        log.Printf(siteUrl)
-
-        resp, err := http.Get(address)
-        if err != nil {
-                w.WriteHeader(200)
-
-        } else {
-                defer resp.Body.Close()
-                body, err := ioutil.ReadAll(resp.Body)
-                if err !=nil {
-
-                }
-
-                if siteUrl != "" {
-
-                  s := string(body[:])
-
-                  s = strings.Replace(s, "<img src=\"/", "<img src=\"" + serverIP + siteUrl + "/" , -1)
-                  s = strings.Replace(s, "url('/", "url('" + serverIP + siteUrl + "/" , -1)
-
-
-                  s = strings.Replace(s, "href=\"/", "href=\"" + serverIP + siteUrl + "/" , -1)
-
-
-                  body = []byte(s)
-
-
-                }
-
-                w.Header().Set("GO!", "Unleashed!")
-                w.WriteHeader(200)
-                w.Write(body)
-        }
-
+        w.Write(dat)
 }

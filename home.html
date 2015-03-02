@@ -5,13 +5,31 @@
   <body>
     Gimme a URL : <input type="input" name="name" id="url" value="http://www.bing.com/">
     <input type="button" name="name" value="Unleash it!" onclick="Unleasher()">
+
+
+    <div class="" style="padding-top:25px;">
+      <input type="button" name="name" value="FB00K" onclick="loadFB()">
+      <input type="button" name="name" value="UTUBE" onclick="loadYou()">
+      <input type="button" name="name" value="Twitty" onclick="loadTwitty()">
+    </div>
   </body>
 
 
   <script >
 
   function Unleasher(){
-    window.location = "http://127.0.0.1:8000/" + document.getElementById("url").value;
+    var encodedData = window.btoa(document.getElementById("url").value);
+    encodedData = window.btoa(encodedData);
+    window.location = "http://127.0.0.1:8000/enc/" + encodedData;
+  }
+  function loadFB(){
+    window.location = "http://178.62.1.181:8000/http://173.252.120.6";
+  }
+  function loadYou(){
+    window.location = "http://178.62.1.181:8000/http://127.0.53.53/";
+  }
+  function loadTwitty(){
+    window.location = "http://178.62.1.181:8000/http://199.59.149.230/";
   }
   </script>
 </html>
