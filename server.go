@@ -10,6 +10,9 @@ import (
     "net/http/cookiejar"
 )
 
+const serverIP = "http://127.0.0.1:8000/"
+const serverPort = ":8000"
+
 
 func check(e error) {
     if e != nil {
@@ -34,37 +37,50 @@ func main() {
         address := string(sDec[:])
         log.Printf(address)
 
+        siteUrl := "";
 
         u, err := url.Parse(address)
         check(err)
+
         if u.Host == "" {
+          w.Header().Set("GO!", "Not found!!")
+          w.WriteHeader(404)
+          w.Write([]byte("Not Found!"))
+        } else {
 
+          cookieJar, _ := cookiejar.New(nil)
+
+          client := &http.Client {
+            Jar: cookieJar,
+          }
+
+          resp, err := client.Get(address)
+          body, err := ioutil.ReadAll(resp.Body)
+          check(err)
+
+          siteUrl = u.Scheme + "://" + u.Host
+
+          s := string(body[:])
+
+          s = strings.Replace(s, "<img src=\"/", "<img src=\"" + serverIP + siteUrl + "/" , -1)
+          s = strings.Replace(s, "url('/", "url('" + serverIP + siteUrl + "/" , -1)
+
+
+          s = strings.Replace(s, "href=\"/", "href=\"" + serverIP + siteUrl + "/" , -1)
+
+          s = strings.Replace(s, "src=\"/", "src=\"" + serverIP + siteUrl + "/" , -1)
+
+
+          body = []byte(s)
+
+
+          w.Header().Set("GO!", "Unleashed!")
+          w.WriteHeader(200)
+          w.Write(body)
         }
-
-
-        options := cookiejar.Options{
-               PublicSuffixList: publicsuffix.List,
-        }
-
-        cookieJar, _ := cookiejar.New(&options)
-
-        client := &http.Client {
-          Jar: cookieJar,
-        }
-
-
-        resp, err := client.Get(address)
-        body, err := ioutil.ReadAll(resp.Body)
-        check(err)
-
-
-
-        w.Header().Set("GO!", "Unleashed!")
-        w.WriteHeader(200)
-        w.Write(body)
     })
 
-    http.ListenAndServe(":8000", nil)
+    http.ListenAndServe(serverPort, nil)
 }
 
 
