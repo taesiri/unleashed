@@ -45,12 +45,8 @@ func main() {
 		}
 
 		resp, err := client.Get(address)
-		log.Println("Reading Responce")
 		body, err := ioutil.ReadAll(resp.Body)
-		log.Println("Checking Response")
 		check(err)
-
-		log.Println("MREZA")
 
 		s := string(body[:])
 
@@ -64,7 +60,7 @@ func main() {
 			secureLink := base64.StdEncoding.EncodeToString([]byte(link[1 : len(link)-1]))
 			secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
-			s = strings.Replace(s, link, encryptedLink+secureLink, -1)
+			s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
 		}
 
 		body = []byte(s)
