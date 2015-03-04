@@ -11,14 +11,13 @@ import (
 	"strings"
 )
 
-const serverIP = "http://127.0.0.1:8000/"
+const serverIP = "http://127.0.0.1.63:8000/"
 const serverPort = ":8000"
-const encryptedLink = "http://127.0.0.1:8000/enc/"
+const encryptedLink = serverIP + "enc/"
 
-var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&%=#.(){};:,.<>_+?|\\\\/\\-]*)\"")
-
-var implicitLinksRegexp = regexp.MustCompile("\"/([a-zA-Z0-9+&=%#.(){};:,.<>_+?|\\\\/\\-]*)\"") // href=//resource
-var implicitLinks2Regexp = regexp.MustCompile("\\(/[a-zA-Z0-9+&=%#.{};:,.<>_+?|\\\\/\\-]*\\)")  //Url(/resouce)
+var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&%=#.(){};:,.<>_+?|\\\\/]*)\"")
+var actionLinksRegexp = regexp.MustCompile("action=\"/([a-zA-Z0-9+&=%#.(){};:,.<>_+?|\\\\/\\-]*)\"")
+var implicitLinks2Regexp = regexp.MustCompile("\\(/[a-zA-Z0-9+&=%#.{};:,.<>_+?|\\\\/\\-]*\\)")
 
 func check(e error) {
 	if e != nil {
@@ -41,7 +40,7 @@ func main() {
 		sDec, _ = base64.StdEncoding.DecodeString(string(sDec[:]))
 
 		address := string(sDec[:])
-		log.Printf(address)
+		log.Println(address)
 
 		client := &http.Client{
 			Jar: cookieJar,
@@ -64,7 +63,7 @@ func main() {
 			secureLink := base64.StdEncoding.EncodeToString([]byte(link[1 : len(link)-1]))
 			secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
-			s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
+			s = strings.Replace(s, link, "\""+encryptedLink+secureLink+"\"", -1)
 		}
 
 		u, err := url.Parse(address)
@@ -74,26 +73,29 @@ func main() {
 			siteUrl := u.Scheme + "://" + u.Host
 			log.Println(siteUrl)
 
-			output = implicitLinksRegexp.FindAllString(s, -1)
+			output = actionLinksRegexp.FindAllString(s, -1)
 			for _, link := range output {
 
-				fullLink := siteUrl + "//" + link[1:len(link)-1]
+				fullLink := siteUrl + "/" + link[8:len(link)-1]
+
+				log.Println("ACTION LINK")
+				log.Println(fullLink)
 
 				secureLink := base64.StdEncoding.EncodeToString([]byte(fullLink))
 				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
-				s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
+				s = strings.Replace(s, link, "action=\""+encryptedLink+secureLink+"\"", -1)
 			}
 
 			output = implicitLinks2Regexp.FindAllString(s, -1)
 			for _, link := range output {
 
-				fullLink := siteUrl + "//" + link[1:len(link)-1]
+				fullLink := siteUrl + "/" + link[1:len(link)-1]
 
 				secureLink := base64.StdEncoding.EncodeToString([]byte(fullLink))
 				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
-				s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
+				s = strings.Replace(s, link, "\""+encryptedLink+secureLink+"\"", -1)
 			}
 		}
 
