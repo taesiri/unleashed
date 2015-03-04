@@ -1,91 +1,92 @@
 package main
 
 import (
-    "net/http"
-    "strings"
-    "log"
-    "io/ioutil"
-    "encoding/base64"
-    "net/url"
-    "net/http/cookiejar"
+	"encoding/base64"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/http/cookiejar"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 const serverIP = "http://127.0.0.1:8000/"
 const serverPort = ":8000"
+const encryptedLink = "http://127.0.0.1:8000/enc/"
 
+var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&=#.(){};:,.<>_+?|\\\\/]*)\"")
 
 func check(e error) {
-    if e != nil {
-        panic(e)
-    }
+	if e != nil {
+		panic(e)
+	}
 }
 
 func main() {
 
-    http.HandleFunc("/", hello)
+	http.HandleFunc("/", hello)
 
-    http.HandleFunc("/enc/", func(w http.ResponseWriter, r *http.Request) {
-        theUrl := strings.SplitN(r.URL.Path, "/", 3)[2]
+	http.HandleFunc("/enc/", func(w http.ResponseWriter, r *http.Request) {
+		theUrl := strings.SplitN(r.URL.Path, "/", 3)[2]
 
-        log.Printf("ENC")
-        log.Printf(theUrl)
+		log.Printf("ENC")
+		log.Printf(theUrl)
 
-        sDec, _ := base64.StdEncoding.DecodeString(theUrl)
-        sDec, _ = base64.StdEncoding.DecodeString(string(sDec[:]))
+		sDec, _ := base64.StdEncoding.DecodeString(theUrl)
+		sDec, _ = base64.StdEncoding.DecodeString(string(sDec[:]))
 
+		address := string(sDec[:])
+		log.Printf(address)
 
-        address := string(sDec[:])
-        log.Printf(address)
+		u, err := url.Parse(address)
+		check(err)
 
-        siteUrl := "";
+		if u.Host == "" {
+			w.Header().Set("GO!", "Not found!!")
+			w.WriteHeader(404)
+			w.Write([]byte("Not Found!"))
+		} else {
 
-        u, err := url.Parse(address)
-        check(err)
+			cookieJar, _ := cookiejar.New(nil)
 
-        if u.Host == "" {
-          w.Header().Set("GO!", "Not found!!")
-          w.WriteHeader(404)
-          w.Write([]byte("Not Found!"))
-        } else {
+			client := &http.Client{
+				Jar: cookieJar,
+			}
 
-          cookieJar, _ := cookiejar.New(nil)
+			resp, err := client.Get(address)
+			body, err := ioutil.ReadAll(resp.Body)
+			check(err)
 
-          client := &http.Client {
-            Jar: cookieJar,
-          }
+			s := string(body[:])
 
-          resp, err := client.Get(address)
-          body, err := ioutil.ReadAll(resp.Body)
-          check(err)
+			output := linksRegexp.FindAllString(s, -1)
+			log.Println(output)
+			log.Println(strconv.Itoa(len(output)))
 
-          siteUrl = u.Scheme + "://" + u.Host
+			for _, link := range output {
+				log.Println(link)
 
-          s := string(body[:])
+				secureLink := base64.StdEncoding.EncodeToString([]byte(link))
+				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
-          s = strings.Replace(s, "<img src=\"/", "<img src=\"" + serverIP + siteUrl + "/" , -1)
-          s = strings.Replace(s, "url('/", "url('" + serverIP + siteUrl + "/" , -1)
+				s = strings.Replace(s, link, encryptedLink+secureLink, -1)
+			}
 
+			body = []byte(s)
 
-          s = strings.Replace(s, "href=\"/", "href=\"" + serverIP + siteUrl + "/" , -1)
+			w.Header().Set("GO!", "Unleashed!")
+			w.WriteHeader(200)
+			w.Write(body)
+		}
+	})
 
-          s = strings.Replace(s, "src=\"/", "src=\"" + serverIP + siteUrl + "/" , -1)
-
-
-          body = []byte(s)
-
-
-          w.Header().Set("GO!", "Unleashed!")
-          w.WriteHeader(200)
-          w.Write(body)
-        }
-    })
-
-    http.ListenAndServe(serverPort, nil)
+	http.ListenAndServe(serverPort, nil)
 }
 
-
 func hello(w http.ResponseWriter, r *http.Request) {
-        dat, err := ioutil.ReadFile("home.html")
-        check(err)
-        w.Write(dat)
+	dat, err := ioutil.ReadFile("home.html")
+	check(err)
+	w.Write(dat)
 }
