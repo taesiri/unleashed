@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"regexp"
 	"strings"
 )
@@ -15,6 +16,9 @@ const serverPort = ":8000"
 const encryptedLink = "http://127.0.0.1:8000/enc/"
 
 var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&%=#.(){};:,.<>_+?|\\\\/\\-]*)\"")
+
+var implicitLinksRegexp = regexp.MustCompile("\"/([a-zA-Z0-9+&=%#.(){};:,.<>_+?|\\\\/\\-]*)\"") // href=//resource
+var implicitLinks2Regexp = regexp.MustCompile("\\(/[a-zA-Z0-9+&=%#.{};:,.<>_+?|\\\\/\\-]*\\)")  //Url(/resouce)
 
 func check(e error) {
 	if e != nil {
@@ -31,7 +35,6 @@ func main() {
 		theUrl := strings.SplitN(r.URL.Path, "/", 3)[2]
 
 		r.ParseForm()
-		log.Printf(theUrl)
 		log.Println(r.PostForm)
 
 		sDec, _ := base64.StdEncoding.DecodeString(theUrl)
@@ -62,6 +65,36 @@ func main() {
 			secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
 			s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
+		}
+
+		u, err := url.Parse(address)
+		check(err)
+
+		if u.Host != "" {
+			siteUrl := u.Scheme + "://" + u.Host
+			log.Println(siteUrl)
+
+			output = implicitLinksRegexp.FindAllString(s, -1)
+			for _, link := range output {
+
+				fullLink = siteUrl + "/" + []byte(link[1:len(link)-1])
+
+				secureLink := base64.StdEncoding.EncodeToString(fullLink)
+				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
+
+				s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
+			}
+
+			output = implicitLinks2Regexp.FindAllString(s, -1)
+			for _, link := range output {
+
+				fullLink = siteUrl + "/" + []byte(link[1:len(link)-1])
+
+				secureLink := base64.StdEncoding.EncodeToString(fullLink)
+				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
+
+				s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
+			}
 		}
 
 		body = []byte(s)
