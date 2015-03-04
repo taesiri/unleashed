@@ -16,7 +16,7 @@ const serverIP = "http://127.0.0.1:8000/"
 const serverPort = ":8000"
 const encryptedLink = "http://127.0.0.1:8000/enc/"
 
-var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&=#.(){};:,.<>_+?|\\\\/]*)\"")
+var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&=#.(){};:,.<>_+?|\\\\/\\-]*)\"")
 
 func check(e error) {
 	if e != nil {
