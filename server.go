@@ -77,9 +77,9 @@ func main() {
 			output = implicitLinksRegexp.FindAllString(s, -1)
 			for _, link := range output {
 
-				fullLink = siteUrl + "/" + []byte(link[1:len(link)-1])
+				fullLink := siteUrl + "//" + link[1:len(link)-1]
 
-				secureLink := base64.StdEncoding.EncodeToString(fullLink)
+				secureLink := base64.StdEncoding.EncodeToString([]byte(fullLink))
 				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
 				s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
@@ -88,9 +88,9 @@ func main() {
 			output = implicitLinks2Regexp.FindAllString(s, -1)
 			for _, link := range output {
 
-				fullLink = siteUrl + "/" + []byte(link[1:len(link)-1])
+				fullLink := siteUrl + "//" + link[1:len(link)-1]
 
-				secureLink := base64.StdEncoding.EncodeToString(fullLink)
+				secureLink := base64.StdEncoding.EncodeToString([]byte(fullLink))
 				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
 				s = strings.Replace(s, link[1:len(link)-1], encryptedLink+secureLink, -1)
