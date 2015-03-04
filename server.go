@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -25,6 +24,7 @@ func check(e error) {
 }
 
 func main() {
+	cookieJar, _ := cookiejar.New(nil)
 
 	http.HandleFunc("/", hello)
 
@@ -40,46 +40,39 @@ func main() {
 		address := string(sDec[:])
 		log.Printf(address)
 
-		u, err := url.Parse(address)
+		client := &http.Client{
+			Jar: cookieJar,
+		}
+
+		resp, err := client.Get(address)
+		log.Println("Reading Responce")
+		body, err := ioutil.ReadAll(resp.Body)
+		log.Println("Checking Response")
 		check(err)
 
-		if u.Host == "" {
-			w.Header().Set("GO!", "Not found!!")
-			w.WriteHeader(404)
-			w.Write([]byte("Not Found!"))
-		} else {
+		log.Println("MREZA")
 
-			cookieJar, _ := cookiejar.New(nil)
+		s := string(body[:])
 
-			client := &http.Client{
-				Jar: cookieJar,
-			}
+		output := linksRegexp.FindAllString(s, -1)
+		log.Println(output)
+		log.Println(strconv.Itoa(len(output)))
 
-			resp, err := client.Get(address)
-			body, err := ioutil.ReadAll(resp.Body)
-			check(err)
+		for _, link := range output {
+			log.Println(link)
 
-			s := string(body[:])
+			secureLink := base64.StdEncoding.EncodeToString([]byte(link[1 : len(link)-1]))
+			secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
-			output := linksRegexp.FindAllString(s, -1)
-			log.Println(output)
-			log.Println(strconv.Itoa(len(output)))
-
-			for _, link := range output {
-				log.Println(link)
-
-				secureLink := base64.StdEncoding.EncodeToString([]byte(link))
-				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
-
-				s = strings.Replace(s, link, encryptedLink+secureLink, -1)
-			}
-
-			body = []byte(s)
-
-			w.Header().Set("GO!", "Unleashed!")
-			w.WriteHeader(200)
-			w.Write(body)
+			s = strings.Replace(s, link, encryptedLink+secureLink, -1)
 		}
+
+		body = []byte(s)
+
+		w.Header().Set("GO!", "Unleashed!")
+		w.WriteHeader(200)
+		w.Write(body)
+
 	})
 
 	http.ListenAndServe(serverPort, nil)
