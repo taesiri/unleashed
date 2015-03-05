@@ -11,12 +11,13 @@ import (
 	"strings"
 )
 
-const serverIP = "http://127.0.0.1.63:8000/"
+const serverIP = "http://127.0.0.1:8000/"
 const serverPort = ":8000"
 const encryptedLink = serverIP + "enc/"
 
 var linksRegexp = regexp.MustCompile("\"(http|https)://([a-zA-Z0-9+&%=#.(){};:,.<>_+?|\\\\/]*)\"")
 var actionLinksRegexp = regexp.MustCompile("action=\"/([a-zA-Z0-9+&=%#.(){};:,.<>_+?|\\\\/\\-]*)\"")
+var srcLinksRegexp = regexp.MustCompile("src=\"/([a-zA-Z0-9+&=%#.(){};:,.<>_+?|\\\\/\\-]*)\"")
 var implicitLinks2Regexp = regexp.MustCompile("\\(/[a-zA-Z0-9+&=%#.{};:,.<>_+?|\\\\/\\-]*\\)")
 
 func check(e error) {
@@ -85,6 +86,20 @@ func main() {
 				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
 
 				s = strings.Replace(s, link, "action=\""+encryptedLink+secureLink+"\"", -1)
+			}
+
+			output = srcLinksRegexp.FindAllString(s, -1)
+			for _, link := range output {
+
+				fullLink := siteUrl + "/" + link[5:len(link)-1]
+
+				log.Println("SRC LINK")
+				log.Println(fullLink)
+
+				secureLink := base64.StdEncoding.EncodeToString([]byte(fullLink))
+				secureLink = base64.StdEncoding.EncodeToString([]byte(secureLink))
+
+				s = strings.Replace(s, link, "src=\""+encryptedLink+secureLink+"\"", -1)
 			}
 
 			output = implicitLinks2Regexp.FindAllString(s, -1)
